@@ -43,7 +43,7 @@ if __name__ == "__main__":
     df.to_csv('data/AAPL')
     '''
     
-    df = pd.read_csv('data/AAPL')
+    df = pd.read_csv('data/akbank.csv')
 
     train = data_split(df, '2009-01-01','2019-01-01')
     trade = data_split(df, '2019-01-01','2020-12-01')
@@ -58,33 +58,55 @@ if __name__ == "__main__":
 
     env_setup = EnvSetup(stock_dim = stock_dimension,
         state_space = state_space,
-        hmax = 100,
-        initial_amount = 1000000,
-        transaction_cost_pct = 0.001)
+        hmax = 500,
+        initial_amount = 10000,
+        transaction_cost_pct = 0.002)
 
     env_train = env_setup.create_env_training(data = train, env_class = SingleStockEnv)
     env_trade, obs_trade = env_setup.create_env_trading(data = trade, env_class = SingleStockEnv) 
 
+    '''
+    print("==============A2C Model Training===========")
     agent = DRLAgent(env = env_train)
-
-    print("==============Model Training===========")
     now = datetime.datetime.now().strftime('%Y%m%d-%Hh%M')
     a2c_params_tuning = {'n_steps':5, 
                 'ent_coef':0.005, 
                 'learning_rate':0.0002,
                 'verbose':0,
-                'timesteps':150000}
+                'timesteps':20000}
     
-    #model_a2c = agent.train_A2C(model_name = "A2C_{}".format(now), model_params = a2c_params_tuning)
+    model_a2c = agent.train_A2C(model_name = "A2C_{}".format(now), model_params = a2c_params_tuning)
+    #model_a2c = A2C.load('trained_models/A2C_20201220-16h41.zip')
 
-    model_a2c = A2C.load('trained_models/A2C_20201220-16h41.zip')
+    print("==============DDPG Model Training===========")
+    agent = DRLAgent(env = env_train)
+    now = datetime.datetime.now().strftime('%Y%m%d-%Hh%M')
+    ddpg_params_tuning = {
+                        'batch_size': 128,
+                            'buffer_size':100000, 
+                        'learning_rate':0.0003,
+                            'verbose':0,
+                            'timesteps':30000}
+    model_ddpg = agent.train_DDPG(model_name = "DDPG_{}".format(now), model_params = ddpg_params_tuning)
+    '''
+
+    print("==============PPO Model Training===========")
+    agent = DRLAgent(env = env_train)
+    now = datetime.datetime.now().strftime('%Y%m%d-%Hh%M')
+    ppo_params_tuning = {'n_steps':128, 
+                        'batch_size': 64,
+                        'ent_coef':0.005, 
+                        'learning_rate':0.00025,
+                        'verbose':0,
+                        'timesteps':50000}
+    model_ppo = agent.train_PPO( model_name = "PPO_{}".format(now), model_params = ppo_params_tuning)
 
     print("==============Start Trading===========")
     env_trade, obs_trade = env_setup.create_env_trading(data = trade,
         env_class = SingleStockEnv,
         turbulence_threshold=250) 
 
-    df_account_value, df_actions = DRLAgent.DRL_prediction(model=model_a2c,
+    df_account_value, df_actions = DRLAgent.DRL_prediction(model=model_ppo,
         test_data = trade,
         test_env = env_trade,
         test_obs = obs_trade)

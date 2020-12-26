@@ -8,7 +8,7 @@ from finrl.config import config
 def process_stock(stock_name):
     df = pd.read_csv('data/turkish/' + stock_name)
 
-    df.rename(columns={'Date': 'date', 
+    df = df.rename(columns={'Date': 'date', 
         'Open': 'open',
         'Close': 'close',
         'High': 'high',
@@ -17,14 +17,15 @@ def process_stock(stock_name):
     })
 
     df['tic'] = stock_name
+    df = df.drop(columns=['Currency'])
 
-    df.sort_values(['Date', 'tic'],ignore_index=True)
+    df.sort_values(['date', 'tic'],ignore_index=True)
 
     df = FeatureEngineer(df.copy(),
         use_technical_indicator=True,
         tech_indicator_list = config.TECHNICAL_INDICATORS_LIST,
         use_turbulence=False,
-        user_defined_feature = False).preprocess_data()
+        user_defined_feature = True).preprocess_data()
 
     print('completed:' + stock_name)
     return df

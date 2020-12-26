@@ -43,7 +43,21 @@ if __name__ == "__main__":
     df.to_csv('data/preprocessed')
 
     '''
-    df = pd.read_csv('data/preprocessed')
+
+    df = pd.read_csv('data/preprocessed_turkish.csv')
+    
+    df = df.drop(columns=['currency', 'macd','rsi_30','cci_30','dx_30'])
+    df = df.sort_values(['date','tic'],ignore_index=True)
+    df = df.set_index(['id', 'date', 'tic'], append=True)
+    print(df.head())
+
+    df = FeatureEngineer(df.copy(),
+        use_technical_indicator=True,
+        tech_indicator_list = config.TECHNICAL_INDICATORS_LIST,
+        use_turbulence=True,
+        user_defined_feature = False).preprocess_data()
+    
+
     train = data_split(df, '2009-01-01','2019-01-01')
     trade = data_split(df, '2019-01-01','2020-12-01')
 
@@ -52,7 +66,7 @@ if __name__ == "__main__":
     print(trade.head())
 
     stock_dimension = len(train.tic.unique())
-    state_space = 1 + 2*stock_dimension + len(config.TECHNICAL_INDICATORS_LIST)*stock_dimension
+    state_space = 1+ 2*stock_dimension + len(config.TECHNICAL_INDICATORS_LIST)*stock_dimension
 
     env_setup = EnvSetup(stock_dim = stock_dimension,
         state_space = state_space,
